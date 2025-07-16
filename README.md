@@ -32,7 +32,7 @@ jsonwebtoken: For JWT auth
 
 
 
-Run with Node.js
+Run with Node.js using either Visual Studio Code or IntelliJ IDEA ULTIMATE
 
 Use Xammp for MySQL
 
