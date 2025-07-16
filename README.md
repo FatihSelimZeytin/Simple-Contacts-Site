@@ -8,7 +8,7 @@ Install required dependencies
 
 
 
-npm install express sequelize mysql2 dotenv jsonwebtoken bcrypt
+npm install express sequelize mysql2 dotenv jsonwebtoken umzug
 
 
 
@@ -29,6 +29,10 @@ dotenv: For environment variables
 
 
 jsonwebtoken: For JWT auth
+
+
+
+umzug: For migration
 
 
 
