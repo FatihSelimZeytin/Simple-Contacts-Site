@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contacts Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    h2 { margin-top: 40px; }
+    label { display: block; margin: 8px 0 4px; }
+    input, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 10px; padding: 10px 15px; }
+    .contact-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+    .phones { font-size: 0.9em; color: #555; }
+    #message { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+<button id="logoutBtn" style="float: right; margin-bottom: 20px;">Logout</button>
+
+<h1>Contacts Management</h1>
+
+<!-- Create Contact -->
+<section>
+  <h2>Create Contact</h2>
+  <form id="createForm">
+    <label>First Name</label>
+    <input type="text" name="firstName" required />
+    <label>Surname</label>
+    <input type="text" name="surname" required />
+    <label>Company</label>
+    <input type="text" name="company" />
+    <label>Phones (comma separated)</label>
+    <input type="text" name="phones" placeholder="e.g. 1234567890, 0987654321" />
+    <button type="submit">Create</button>
+  </form>
+</section>
+
+<!-- Search Contacts -->
+<section>
+  <h2>Search Contacts</h2>
+  <input type="text" id="searchInput" placeholder="Search by name, surname, company, or phone" />
+  <button id="searchBtn">Search</button>
+</section>
+
+<!-- List Contacts -->
+<section>
+  <h2>Contact List</h2>
+  <button id="refreshBtn">Refresh List</button>
+  <div id="contactsList">No contacts loaded.</div>
+</section>
+
+<!-- Update Contact -->
+<section>
+  <h2>Update Contact</h2>
+  <form id="updateForm">
+    <label>First Name</label>
+    <input type="text" name="firstName" required />
+
+    <label>Surname</label>
+    <input type="text" name="surname" required />
+
+    <label>New First Name</label>
+    <input type="text" name="newFirstName" />
+    <label>New Surname</label>
+    <input type="text" name="newSurname" />
+    <label>New Company</label>
+    <input type="text" name="company" />
+    <label>New Phones (comma separated)</label>
+    <input type="text" name="phones" placeholder="e.g. 1234567890, 0987654321" />
+    <button type="submit">Update</button>
+  </form>
+</section>
+
+<!-- Delete Contact -->
+<section>
+  <h2>Delete Contact</h2>
+  <form id="deleteForm">
+    <label>First Name</label>
+    <input type="text" name="firstName" required />
+
+    <label>Surname</label>
+    <input type="text" name="surname" required />
+
+    <button type="submit">Delete</button>
+  </form>
+</section>
+
+<div id="message"></div>
+
+<script>
+  const message = document.getElementById('message');
+  const contactsList = document.getElementById('contactsList');
+
+  // Check for token, redirect if not found
+  const token = localStorage.getItem('token');
+  if (!token) {
+    alert('You are not logged in. Redirecting to login page.');
+    window.location.href = '/login.html'; // Adjust if your login page is different
+  }
+
+  function showMessage(text, isError = false) {
+    message.textContent = text;
+    message.style.color = isError ? 'red' : 'green';
+  }
+
+  // Create Contact
+  document.getElementById('createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMessage('Creating contact...');
+    const form = e.target;
+
+    const data = {
+      firstName: form.firstName.value.trim(),
+      surname: form.surname.value.trim(),
+      company: form.company.value.trim(),
+      phones: form.phones.value ? form.phones.value.split(',').map(p => p.trim()) : [],
+    };
+
+    try {
+      const res = await fetch('/contacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showMessage(`Contact created! ID: ${json.id}`);
+        form.reset();
+        loadContacts();
+      } else {
+        showMessage(json.error || 'Error creating contact', true);
+      }
+    } catch (err) {
+      showMessage('Network error: ' + err.message, true);
+    }
+  });
+
+  // Load all contacts
+  async function loadContacts() {
+    showMessage('Loading contacts...');
+    try {
+      const res = await fetch('/contacts', {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        if (json.length === 0) {
+          contactsList.textContent = 'No contacts found.';
+          showMessage('');
+        } else {
+          contactsList.innerHTML = json.map(c => `
+            <div class="contact-item">
+              <strong>Name:</strong> ${c.firstName}<br/>
+              <strong>Surname:</strong> ${c.surname}<br/>
+              <strong>Company:</strong> ${c.company || '-'}<br/>
+              <strong>Phones:</strong> ${c.Phones.map(p => p.number).join(', ') || '-'}
+            </div>
+          `).join('');
+          showMessage('');
+        }
+      } else {
+        showMessage(json.error || 'Error loading contacts', true);
+      }
+    } catch (err) {
+      showMessage('Network error: ' + err.message, true);
+    }
+  }
+  document.getElementById('refreshBtn').addEventListener('click', loadContacts);
+
+  // Initial load
+  loadContacts();
+
+  // Search contacts
+  document.getElementById('searchBtn').addEventListener('click', async () => {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) {
+      showMessage('Enter search term', true);
+      return;
+    }
+    showMessage('Searching...');
+    try {
+      const res = await fetch('/contacts/search?q=' + encodeURIComponent(q), {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+      const json = await res.json();
+      if (res.ok) {
+        if (json.length === 0) {
+          contactsList.textContent = 'No contacts found.';
+          showMessage('');
+        } else {
+          contactsList.innerHTML = json.map(c => `
+            <div class="contact-item">
+              <strong>Name:</strong> ${c.firstName}<br/>
+              <strong>Surname:</strong> ${c.surname}<br/>
+              <strong>Company:</strong> ${c.company || '-'}<br/>
+              <strong>Phones:</strong> ${c.Phones.map(p => p.number).join(', ') || '-'}
+            </div>
+          `).join('');
+          showMessage('');
+        }
+      } else {
+        showMessage(json.error || 'Search failed', true);
+      }
+    } catch (err) {
+      showMessage('Network error: ' + err.message, true);
+    }
+  });
+
+  // Update contact
+  document.getElementById('updateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMessage('Updating contact...');
+    const form = e.target;
+
+    const data = {
+      searchFirstName: form.firstName.value.trim(),
+      searchSurname: form.surname.value.trim(),
+    };
+
+    if (form.newFirstName.value.trim()) data.firstName = form.newFirstName.value.trim();
+    if (form.newSurname.value.trim()) data.surname = form.newSurname.value.trim();
+    if (form.company.value.trim()) data.company = form.company.value.trim();
+    if (form.phones.value.trim()) {
+      data.phones = form.phones.value.split(',').map(p => p.trim());
+    }
+
+    if (Object.keys(data).length <= 2) {  // only searchFirstName & searchSurname present
+      showMessage('Enter at least one field to update', true);
+      return;
+    }
+
+    try {
+      const res = await fetch('/contacts', {  // Note no id in URL, send data with search keys
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        showMessage('Contact updated!');
+        form.reset();
+        loadContacts();
+      } else {
+        showMessage(json.error || 'Update failed', true);
+      }
+    } catch (err) {
+      showMessage('Network error: ' + err.message, true);
+    }
+  });
+
+  // Delete contact
+  document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    showMessage('Deleting contact...');
+    const form = e.target;
+
+    const firstName = form.firstName.value.trim();
+    const surname = form.surname.value.trim();
+
+    if (!firstName || !surname) {
+      showMessage('Both first name and surname are required', true);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/contacts?firstName=${encodeURIComponent(firstName)}&surname=${encodeURIComponent(surname)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+
+      const json = await res.json();
+      if (res.ok) {
+        showMessage(json.message);
+        form.reset();
+        loadContacts();
+      } else {
+        showMessage(json.error || 'Delete failed', true);
+      }
+    } catch (err) {
+      showMessage('Network error: ' + err.message, true);
+    }
+  });
+  // Logout
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    showMessage('Logging out...');
+    setTimeout(() => {
+      window.location.href = '/login.html'; // Adjust if your login path differs
+    }, 1000);
+  });
+</script>
+
+</body>
+</html>

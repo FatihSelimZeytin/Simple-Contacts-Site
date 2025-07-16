@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Management</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+    nav { margin-bottom: 20px; }
+    nav button {
+      margin-right: 10px; padding: 10px 15px; cursor: pointer;
+      border: 1px solid #444; background: #eee;
+    }
+    nav button.active { background: #444; color: white; }
+    section { display: none; }
+    section.active { display: block; }
+    label { display: block; margin: 8px 0 4px; }
+    input[type="text"], input[type="email"] {
+      width: 100%; padding: 8px; box-sizing: border-box;
+    }
+    button.submit-btn { margin-top: 12px; padding: 10px 15px; }
+    #output { margin-top: 20px; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <button id="btnCreate" class="active">Create</button>
+  <button id="btnRead">Read All</button>
+  <button id="btnUpdate">Update</button>
+  <button id="btnDelete">Delete</button>
+</nav>
+
+<section id="createSection" class="active">
+  <h2>Create User</h2>
+  <form id="createForm">
+    <label>Username</label>
+    <input type="text" name="username" required />
+    <label>Email</label>
+    <input type="email" name="email" required />
+    <label>Password Hash</label>
+    <input type="text" name="passwordHash" required />
+    <button class="submit-btn" type="submit">Create</button>
+  </form>
+</section>
+
+<section id="readSection">
+  <h2>Read All Users</h2>
+  <button id="refreshUsers">Refresh List</button>
+  <pre id="userList">Click "Refresh List" to load users</pre>
+</section>
+
+<section id="updateSection">
+  <h2>Update User</h2>
+  <form id="updateForm">
+    <label>User ID</label>
+    <input type="text" name="id" required />
+    <label>New Username</label>
+    <input type="text" name="username" />
+    <label>New Email</label>
+    <input type="email" name="email" />
+    <label>New Password Hash</label>
+    <input type="text" name="passwordHash" />
+    <button class="submit-btn" type="submit">Update</button>
+  </form>
+</section>
+
+<section id="deleteSection">
+  <h2>Delete User</h2>
+  <form id="deleteForm">
+    <label>User ID</label>
+    <input type="text" name="id" required />
+    <button class="submit-btn" type="submit">Delete</button>
+  </form>
+</section>
+
+<div id="output"></div>
+
+<script>
+  // Navigation buttons and sections
+  const buttons = {
+    create: document.getElementById('btnCreate'),
+    read: document.getElementById('btnRead'),
+    update: document.getElementById('btnUpdate'),
+    delete: document.getElementById('btnDelete'),
+  };
+  const sections = {
+    create: document.getElementById('createSection'),
+    read: document.getElementById('readSection'),
+    update: document.getElementById('updateSection'),
+    delete: document.getElementById('deleteSection'),
+  };
+  const output = document.getElementById('output');
+
+  function setActive(sectionName) {
+    for (const key in sections) {
+      sections[key].classList.toggle('active', key === sectionName);
+      buttons[key].classList.toggle('active', key === sectionName);
+    }
+    output.textContent = '';
+  }
+
+  buttons.create.addEventListener('click', () => setActive('create'));
+  buttons.read.addEventListener('click', () => setActive('read'));
+  buttons.update.addEventListener('click', () => setActive('update'));
+  buttons.delete.addEventListener('click', () => setActive('delete'));
+
+  // Create User
+  document.getElementById('createForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    output.textContent = 'Creating user...';
+    const form = e.target;
+    const data = {
+      username: form.username.value,
+      email: form.email.value,
+      passwordHash: form.passwordHash.value,
+    };
+    try {
+      const res = await fetch('/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        output.textContent = `User created! ID: ${json.id}`;
+        form.reset();
+      } else {
+        output.textContent = `Error: ${json.error}`;
+      }
+    } catch (err) {
+      output.textContent = 'Fetch error: ' + err.message;
+    }
+  });
+
+  // Read all users
+  async function loadUsers() {
+    output.textContent = 'Loading users...';
+    try {
+      const res = await fetch('/users');
+      const json = await res.json();
+      if (res.ok) {
+        if (json.length === 0) {
+          output.textContent = 'No users found.';
+        } else {
+          output.textContent = JSON.stringify(json, null, 2);
+        }
+      } else {
+        output.textContent = `Error: ${json.error}`;
+      }
+    } catch (err) {
+      output.textContent = 'Fetch error: ' + err.message;
+    }
+  }
+  document.getElementById('refreshUsers').addEventListener('click', loadUsers);
+
+  // Update user
+  document.getElementById('updateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    output.textContent = 'Updating user...';
+    const form = e.target;
+    const id = form.id.value.trim();
+    if (!id) {
+      output.textContent = 'User ID is required';
+      return;
+    }
+    const data = {};
+    if (form.username.value.trim()) data.username = form.username.value.trim();
+    if (form.email.value.trim()) data.email = form.email.value.trim();
+    if (form.passwordHash.value.trim()) data.passwordHash = form.passwordHash.value.trim();
+    if (Object.keys(data).length === 0) {
+      output.textContent = 'Enter at least one field to update';
+      return;
+    }
+
+    try {
+      const res = await fetch('/users/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        output.textContent = `User updated! ID: ${json.id}`;
+        form.reset();
+      } else {
+        output.textContent = `Error: ${json.error}`;
+      }
+    } catch (err) {
+      output.textContent = 'Fetch error: ' + err.message;
+    }
+  });
+
+  // Delete user
+  document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    output.textContent = 'Deleting user...';
+    const form = e.target;
+    const id = form.id.value.trim();
+    if (!id) {
+      output.textContent = 'User ID is required';
+      return;
+    }
+    try {
+      const res = await fetch('/users/' + id, { method: 'DELETE' });
+      const json = await res.json();
+      if (res.ok) {
+        output.textContent = json.message;
+        form.reset();
+      } else {
+        output.textContent = `Error: ${json.error}`;
+      }
+    } catch (err) {
+      output.textContent = 'Fetch error: ' + err.message;
+    }
+  });
+</script>
+
+</body>
+</html>
