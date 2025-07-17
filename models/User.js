@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define('User', {
         username: {
@@ -19,7 +20,6 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'users',
         timestamps: true,
     });
-
     User.associate = function(models) {
         // Associations can be defined here later, for example:
         // User.hasMany(models.Contact, { foreignKey: 'userId' });

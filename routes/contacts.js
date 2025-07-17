@@ -35,7 +35,10 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const contacts = await Contact.findAll({
-      where: { userId: req.user.id },
+      where: {
+        userId: req.user.id,
+        isActive: true,
+      },
       include: Phone,
     });
     res.json(contacts);
@@ -94,16 +97,16 @@ router.put('/', async (req, res) => {
 // DELETE a contact (parameters in query string)
 router.delete('/', async (req, res) => {
   try {
-    const { firstName, surname } = req.query; // from query instead of body
+    const { firstName, surname } = req.query;
 
     if (!firstName || !surname) {
       return res.status(400).json({ error: 'firstName and surname required' });
     }
 
-    // Case-insensitive search:
     const contact = await Contact.findOne({
       where: {
         userId: req.user.id,
+        isActive: true,
         [Op.and]: [
           where(fn('lower', col('firstName')), firstName.toLowerCase()),
           where(fn('lower', col('surname')), surname.toLowerCase()),
@@ -113,8 +116,8 @@ router.delete('/', async (req, res) => {
 
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
-    await contact.destroy();
-    res.json({ message: 'Contact deleted' });
+    await contact.update({ isActive: false });
+    res.json({ message: 'Contact disabled (soft deleted)' });
 
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -142,6 +145,7 @@ router.get('/search', async (req, res) => {
     const contacts = await Contact.findAll({
       where: {
         userId: req.user.id,
+        isActive: true,  // <-- Only active contacts
         [Op.or]: [
           ...contactConditions,
           ...queryParts.map(part => ({
