@@ -38,8 +38,8 @@
     <input type="text" name="username" required />
     <label>Email</label>
     <input type="email" name="email" required />
-    <label>Password Hash</label>
-    <input type="text" name="passwordHash" required />
+    <label>Password</label>
+    <input type="text" name="plainPassword" required />
     <button class="submit-btn" type="submit">Create</button>
   </form>
 </section>
@@ -60,7 +60,7 @@
     <label>New Email</label>
     <input type="email" name="email" />
     <label>New Password Hash</label>
-    <input type="text" name="passwordHash" />
+    <input type="text" name="plainPassword" />
     <button class="submit-btn" type="submit">Update</button>
   </form>
 </section>
@@ -113,7 +113,7 @@
     const data = {
       username: form.username.value,
       email: form.email.value,
-      passwordHash: form.passwordHash.value,
+      plainPassword: form.plainPassword.value,
     };
     try {
       const res = await fetch('/users', {
@@ -167,7 +167,7 @@
     const data = {};
     if (form.username.value.trim()) data.username = form.username.value.trim();
     if (form.email.value.trim()) data.email = form.email.value.trim();
-    if (form.passwordHash.value.trim()) data.passwordHash = form.passwordHash.value.trim();
+    if (form.plainPassword.value.trim()) data.plainPassword = form.plainPassword.value.trim();
     if (Object.keys(data).length === 0) {
       output.textContent = 'Enter at least one field to update';
       return;

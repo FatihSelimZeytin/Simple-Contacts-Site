@@ -10,26 +10,10 @@ var usersRouter = require('./routes/users');
 var contactsRouter = require('./routes/contacts');
 const phoneRouter = require('./routes/phones');
 const authRouter = require('./routes/auth');
+
 const sequelize = require("./config/database");
 
 var app = express();
-
-(async () => {
-  try {
-    await sequelize.sync({ alter: true }); // creates tables if they don't exist, updates columns if needed
-    console.log('✅ Models synced with database');
-
-    app.listen(3001, () => {
-      console.log('🚀 Server is running on http://localhost:3001');
-    });
-  } catch (error) {
-    console.error('❌ Failed to sync models:', error);
-  }
-})();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
 
 app.use(logger('dev'));
 app.use(express.json());
