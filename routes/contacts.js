@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     const contacts = await Contact.findAll({
       where: {
         userId: req.user.id,
-        isActive: true,
+        status: true,
       },
       include: Phone,
     });
@@ -106,7 +106,7 @@ router.delete('/', async (req, res) => {
     const contact = await Contact.findOne({
       where: {
         userId: req.user.id,
-        isActive: true,
+        status: true,
         [Op.and]: [
           where(fn('lower', col('firstName')), firstName.toLowerCase()),
           where(fn('lower', col('surname')), surname.toLowerCase()),
@@ -116,7 +116,7 @@ router.delete('/', async (req, res) => {
 
     if (!contact) return res.status(404).json({ error: 'Contact not found' });
 
-    await contact.update({ isActive: false });
+    await contact.update({ status: false });
     res.json({ message: 'Contact disabled (soft deleted)' });
 
   } catch (err) {
@@ -145,7 +145,7 @@ router.get('/search', async (req, res) => {
     const contacts = await Contact.findAll({
       where: {
         userId: req.user.id,
-        isActive: true,  // <-- Only active contacts
+        status: true,  // <-- Only active contacts
         [Op.or]: [
           ...contactConditions,
           ...queryParts.map(part => ({
