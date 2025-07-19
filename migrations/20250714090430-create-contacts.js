@@ -32,7 +32,7 @@ module.exports = {
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       },
-      isActive: {
+      status: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,   // active by default
         allowNull: false,
